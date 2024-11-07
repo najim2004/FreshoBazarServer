@@ -29,10 +29,11 @@ const productSchema = new mongoose.Schema(
     thumbnail: {
       type: String,
     },
-    category: {
+    categoryId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
     },
+    categoryName: { type: String, default: "all", required: true },
     subCategories: {
       type: [String],
       default: ["all"],

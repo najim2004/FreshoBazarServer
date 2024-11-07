@@ -31,7 +31,11 @@ export class ProductService {
             error: true,
             error_message: "failed to get products",
           }
-        : { success: true, message: "success to get products" };
+        : {
+            success: true,
+            message: "success to get products",
+            products: dbResponse,
+          };
     } catch (error) {
       return {
         success: false,
@@ -50,7 +54,11 @@ export class ProductService {
             error: true,
             error_message: "failed to get product",
           }
-        : { success: true, message: "success to get product" };
+        : {
+            success: true,
+            message: "success to get product",
+            product: dbResponse,
+          };
     } catch (error) {
       return {
         success: false,

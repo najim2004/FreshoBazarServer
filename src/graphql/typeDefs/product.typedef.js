@@ -25,7 +25,8 @@ export const productTypeDefs = `#graphql
         description: String
         images: [String]!
         thumbnail: String
-        category: ID!
+        categoryId: ID!
+        categoryName: String!
         subCategories: [String]
         unitType: UnitType!
         unitSize: Int!
@@ -57,7 +58,7 @@ export const productTypeDefs = `#graphql
 
     type ProductsPayload {
         success: Boolean!
-        products: [Product]
+        products: [Product!]
         error: Boolean
         error_message: String
     }
@@ -83,7 +84,8 @@ export const productTypeDefs = `#graphql
         description: String
         images: [String]!
         thumbnail: String
-        category: ID!
+        categoryId: ID!
+        categoryName: String!
         subCategories: [String]
         unitType: UnitType!
         unitSize: Int!
