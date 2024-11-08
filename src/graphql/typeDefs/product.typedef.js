@@ -29,7 +29,7 @@ export const productTypeDefs = `#graphql
         categoryName: String!
         subCategories: [String]
         unitType: UnitType!
-        unitSize: Int!
+        unitSize: Float!
         stockSize: Int!
         price: Float!
         currency: String
@@ -63,12 +63,6 @@ export const productTypeDefs = `#graphql
         error_message: String
     }
 
-    # Queries types
-    extend type Query{
-        product(id:ID!): ProductPayload
-        products: ProductsPayload
-    }
-
     # Input types
     input LocationInput {
         subDistrict: String
@@ -88,7 +82,7 @@ export const productTypeDefs = `#graphql
         categoryName: String!
         subCategories: [String]
         unitType: UnitType!
-        unitSize: Int!
+        unitSize: Float!
         stockSize: Int!
         price: Float!
         currency: String
@@ -96,6 +90,12 @@ export const productTypeDefs = `#graphql
         discountValue: Int
         tags: [String]!
         location: LocationInput
+    }
+
+    # Queries types
+    extend type Query{
+        getProduct(id:ID!): ProductPayload
+        getProducts: ProductsPayload
     }
 
     # Mutations types

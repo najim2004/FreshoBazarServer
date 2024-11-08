@@ -17,7 +17,7 @@ export class ProductService {
       return {
         success: false,
         error: true,
-        error_message: "failed to create",
+        error_message: error.message || "failed to create",
       };
     }
   }
@@ -40,7 +40,7 @@ export class ProductService {
       return {
         success: false,
         error: true,
-        error_message: "failed to get products",
+        error_message: error.message || "failed to get products",
       };
     }
   }
@@ -63,7 +63,7 @@ export class ProductService {
       return {
         success: false,
         error: true,
-        error_message: "failed to get product",
+        error_message: error.message || "failed to get product",
       };
     }
   }
@@ -91,7 +91,7 @@ export class ProductService {
       return {
         success: false,
         error: true,
-        error_message: "failed to get product",
+        error_message: error.message || "failed to get product",
       };
     }
   }

@@ -4,8 +4,8 @@ const productService = new ProductService();
 
 export const productResolvers = {
   Query: {
-    products: async () => await productService.getAllProducts(),
-    product: async (_, { _id }) => await productService.getProductById(_id),
+    getProducts: async () => await productService.getAllProducts(),
+    getProduct: async (_, { _id }) => await productService.getProductById(_id),
   },
 
   Mutation: {
