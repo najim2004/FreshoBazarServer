@@ -2,7 +2,7 @@ export const favoriteTypeDefs = `#graphql
     scalar DateTime
 
     type ProductInFavorite {
-        id: ID!
+        productId: ID!
         addedAt: DateTime
     }
 

@@ -8,7 +8,12 @@ export class FavoriteService {
         userId,
         products: [{ productId, addedAt: Date.now() }],
       };
-      const dbResponse = await Favorite.create(newFavorite);
+      const dbResponse =
+        (await Favorite.findOneAndUpdate(
+          { userId },
+          { $push: { products: { productId, addedAt: Date.now() } } },
+          { new: true }
+        )) || (await Favorite.create(newFavorite));
 
       return dbResponse
         ? {
@@ -39,7 +44,7 @@ export class FavoriteService {
         ? {
             success: true,
             message: "success to get favorites",
-            favorites: dbResponse.products,
+            favorites: dbResponse,
           }
         : {
             success: false,
@@ -61,10 +66,9 @@ export class FavoriteService {
     try {
       const dbResponse = await Favorite.findOneAndUpdate(
         { userId },
-        { $pull: { products: productId } },
+        { $pull: { products: { productId } } },
         { new: true }
       );
-
       return dbResponse
         ? {
             success: true,
@@ -89,12 +93,11 @@ export class FavoriteService {
   async toggleFavorite(userId, productId) {
     try {
       const isExist = await Favorite.findOne({
-        _id: userId,
-      })?.products?.find((product) => product?.id === productId);
-
-      isExist
-        ? createFavorite(userId, productId)
-        : deleteFavorite(userId, productId);
+        userId,
+        products: { $elemMatch: { productId } },
+      });
+      if (isExist) return this.deleteFavorite(userId, productId);
+      else return this.createFavorite(userId, productId);
     } catch (error) {
       console.log(error);
       return {
