@@ -93,13 +93,13 @@ export const productTypeDefs = `#graphql
     }
 
     # Queries types
-    extend type Query{
+    type Query{
         getProduct(id:ID!): ProductPayload
         getProducts: ProductsPayload
     }
 
     # Mutations types
-    extend type Mutation{
+    type Mutation{
         createProduct(input:CreateProduct ): ProductPayload
         # updateProduct(id:ID!, input: ProductInput!): productPayload
         deleteProduct(id:ID!): ProductDeletePayload

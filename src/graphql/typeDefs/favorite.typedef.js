@@ -21,11 +21,11 @@ export const favoriteTypeDefs = `#graphql
         error_message: String
     }
 
-    extend type Query {
+    type Query {
         getFavoritesByUserId(userId: ID!): FavoritePayload
     }
 
-    extend type Mutation {
+    type Mutation {
         toggleFavorite(userId: ID!, productId: ID!): FavoritePayload
     }
 `;
