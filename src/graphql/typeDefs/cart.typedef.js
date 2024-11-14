@@ -25,11 +25,7 @@ export const cartTypeDefs = `#graphql
     # Input type for adding items to the cart
     input CartItemInput {
         productId: ID!
-        name: String!
         quantity: Int!
-        price: Float!
-        totalPrice: Float!
-        image: String
         options: JSON
     }
 

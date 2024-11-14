@@ -7,8 +7,8 @@ export const cartResolvers = {
     getCart: async (_, { userId }) => await cartService.getCart(userId),
   },
   Mutation: {
-    addItemToCart: async (_, { userId, productId }) =>
-      await cartService.addItemToCart(userId, productId),
+    addItemToCart: async (_, { userId, item }) =>
+      await cartService.addItemToCart(userId, item),
     updateCartItem: async (_, { userId, productId }) =>
       await cartService.updateCartItem(userId, productId),
     removeItemFromCart: async (_, { userId, productId }) =>

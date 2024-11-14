@@ -2,7 +2,6 @@ import mongoose from "mongoose";
 
 const favoriteSchema = new mongoose.Schema(
   {
-    _id: mongoose.Schema.Types.ObjectId,
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User", // Assuming there's a User collection

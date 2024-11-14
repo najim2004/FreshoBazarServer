@@ -9,7 +9,7 @@ export const favoriteTypeDefs = `#graphql
     type Favorite {
         _id: ID!
         userId: ID!
-        products: [ProductInFavorite!]!
+        products: [ProductInFavorite]
         createdAt: DateTime!
         updatedAt: DateTime!
     }

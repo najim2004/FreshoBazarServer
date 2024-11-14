@@ -1,15 +1,14 @@
 export const categoryTypeDefs = `#graphql
   type Subcategory {
-    _id: ID
-    name: String!
-    slug: String!
+    name: String
+    slug: String
   }
 
   type Category {
     _id: ID!
     name: String!
     slug: String!
-    subcategories: [Subcategory!]!
+    subcategories: [Subcategory]!
   }
   type CategoryPayload {
     success: Boolean

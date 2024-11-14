@@ -46,10 +46,10 @@ export class CartService {
       if (!cart) cart = new Cart({ userId });
 
       // ডিসকাউন্ট হিসাব
-      const discountAmount = (product.price * product.discount) / 100;
+      const discountAmount = (product.price * product.discountValue) / 100;
       const discountPrice = product.price - discountAmount;
       const itemTotalPrice = discountPrice * quantity;
-
+      
       const existingItemIndex = cart.items.findIndex(
         (item) => item.productId.toString() === productId
       );
@@ -60,14 +60,14 @@ export class CartService {
       } else {
         cart.items.push({
           productId,
-          name: product.name,
+          name: product.title,
+          thumbnail:product.thumbnail,
           quantity,
           price: discountPrice, // ডিসকাউন্টের পর মূল্য ব্যবহার করা হচ্ছে
           totalPrice: itemTotalPrice,
           options,
         });
       }
-
       await cart.save({ session });
       await session.commitTransaction();
       session.endSession();
@@ -119,7 +119,7 @@ export class CartService {
       }
 
       // Calculate discount and update item price
-      const discountAmount = (product.price * product.discount) / 100;
+      const discountAmount = (product.price * product.discountValue) / 100;
       const discountPrice = product.price - discountAmount;
       item.price = discountPrice;
       item.quantity = quantity;
