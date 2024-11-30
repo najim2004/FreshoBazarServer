@@ -2,6 +2,7 @@
 
 export const productTypeDefs = `#graphql
     scalar DateTime
+    scalar Upload
 
     enum UnitType {
         kg
@@ -16,6 +17,11 @@ export const productTypeDefs = `#graphql
         district: String
     }
 
+    type Image {
+        id: String
+        url: String
+    }
+
     type Product {
         _id: ID!
         isDelete: Boolean
@@ -23,8 +29,8 @@ export const productTypeDefs = `#graphql
         title: String!
         slug: String!
         description: String
-        images: [String]!
-        thumbnail: String
+        images: [Image]!
+        thumbnail: Image
         categoryId: ID!
         categoryName: String!
         subCategories: [String]
@@ -74,10 +80,10 @@ export const productTypeDefs = `#graphql
     input CreateProduct {
         isAvailable: Boolean!
         title: String!
-        slug: String!
+        slug: String
         description: String
-        images: [String]!
-        thumbnail: String
+        images: [Upload]!
+        thumbnail: Upload
         categoryId: ID!
         categoryName: String!
         subCategories: [String]
@@ -104,7 +110,4 @@ export const productTypeDefs = `#graphql
         # updateProduct(id:ID!, input: ProductInput!): productPayload
         deleteProduct(id:ID!): ProductDeletePayload
     }
-
-    
-
 `;

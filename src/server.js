@@ -5,19 +5,26 @@ import cors from "cors";
 import { createApolloGraphQLServer } from "./graphql/index.js";
 import { connectDB } from "./config/db.config.js";
 import { config } from "./config/env.config.js";
-// import helmet from 'helmet';
+
 const init = async () => {
   const app = express();
-
-  // Apply middleware
-  app.use(cors());
-  app.use(express.json());
 
   try {
     // Connect to MongoDB
     await connectDB();
+    console.log("Database connected successfully");
 
-    app.get("/", (req, res) => {
+    // Middleware for file uploads
+
+    // Apply CORS middleware
+    app.use(cors());
+
+    // Middleware for JSON and URL-encoded payloads
+    const bodyLimit = "50mb"; // Adjust limit as needed
+    app.use(express.json({ limit: bodyLimit }));
+    app.use(express.urlencoded({ limit: bodyLimit, extended: true }));
+
+    app.get("/", (_, res) => {
       res.send(`
     <!DOCTYPE html>
     <html lang="en">
