@@ -5,7 +5,7 @@ const productService = new ProductService();
 export const productResolvers = {
   Query: {
     getProducts: async () => await productService.getAllProducts(),
-    getProduct: async (_, { _id }) => await productService.getProductById(_id),
+    getProduct: async (_, { id }) => await productService.getProductById(id),
   },
 
   Mutation: {

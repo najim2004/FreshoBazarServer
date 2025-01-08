@@ -149,9 +149,18 @@ export class ProductService {
     }
   }
 
-  async getProductById(id) {
+  async getProductById(_id) {
+    console.log(_id);
+    if (!_id) {
+      return {
+        success: false,
+        error: true,
+        errorMessage: "Product ID is required.",
+      };
+    }
+
     try {
-      const dbResponse = await Product.findById(id);
+      const dbResponse = await Product.findById(_id);
       if (!dbResponse) {
         return {
           success: false,

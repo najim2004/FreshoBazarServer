@@ -53,7 +53,7 @@ export const productTypeDefs = `#graphql
         success: Boolean!
         product: Product
         error: Boolean
-        error_message: String
+        errorMessage: String
     }
 
     type ProductDeletePayload {
