@@ -2,6 +2,7 @@ import { cartTypeDefs } from "./cart.typedef.js";
 import { categoryTypeDefs } from "./category.typedef.js";
 import { favoriteTypeDefs } from "./favorite.typedef.js";
 import { productTypeDefs } from "./product.typedef.js";
+import { shopTypeDefs } from "./shop.typedef.js";
 import { userTypeDefs } from "./user.typedef.js";
 
 export const typeDefs = [
@@ -10,4 +11,5 @@ export const typeDefs = [
   favoriteTypeDefs,
   categoryTypeDefs,
   cartTypeDefs,
+  shopTypeDefs,
 ];

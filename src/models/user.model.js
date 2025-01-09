@@ -3,12 +3,11 @@ import bcrypt from "bcryptjs"; // bcrypt library to hash passwords
 
 const userSchema = new mongoose.Schema(
   {
-    _id: mongoose.Schema.Types.ObjectId,
     firstName: { type: String, required: true },
     lastName: { type: String },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true }, // Hashed password
-    phone: { type: String, required: true },
+    phoneNumber: { type: String, required: true },
     role: {
       type: String,
       enum: [
@@ -32,7 +31,7 @@ const userSchema = new mongoose.Schema(
     // legal information
     legalDocumentsInfo: {
       photo: { type: String },
-      fullName: { type: String, required: true },
+      fullName: { type: String },
       gender: { type: String, enum: ["male", "female", "other"] },
       nationality: { type: String, default: "Bangladeshi" },
       dateOfBirth: { type: Date },
@@ -50,11 +49,11 @@ const userSchema = new mongoose.Schema(
     addresses: [
       {
         label: { type: String, default: "Home" },
-        street: { type: String, required: true },
-        city: { type: String, required: true },
-        state: { type: String, required: true },
-        postalCode: { type: String, required: true },
-        country: { type: String, required: true },
+        street: String,
+        city: String,
+        state: String,
+        postalCode: String,
+        country: String,
         isDefault: { type: Boolean, default: false },
       },
     ],

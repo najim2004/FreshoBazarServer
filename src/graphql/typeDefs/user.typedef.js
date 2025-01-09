@@ -5,7 +5,7 @@ export const userTypeDefs = `#graphql
     firstName: String!
     lastName: String
     email: String!
-    phone: String!
+    phoneNumber: String!
     role: String!
     profileImage: String
     lastLogin: DateTime
@@ -82,7 +82,7 @@ export const userTypeDefs = `#graphql
     lastName: String
     email: String!
     password: String!
-    phone: String!
+    phoneNumber: String!
   }
 
   type RegisterPayload {
@@ -102,6 +102,7 @@ export const userTypeDefs = `#graphql
     message: String
     error: Boolean
     error_message: String
+    token: String
   }
 
   type Query {
