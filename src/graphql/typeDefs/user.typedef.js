@@ -1,7 +1,7 @@
 export const userTypeDefs = `#graphql
   scalar DateTime
   type User {
-    id: ID!
+    _id: ID!
     firstName: String!
     lastName: String
     email: String!
@@ -29,11 +29,11 @@ export const userTypeDefs = `#graphql
   }
 
   type LegalDocumentsInfo {
-    photo: String!
-    fullName: String!
-    gender: String!
-    nationality: String!
-    dateOfBirth: DateTime!
+    photo: String
+    fullName: String
+    gender: String
+    nationality: String
+    dateOfBirth: DateTime
     NIDNumber: String
     NIDPicture: String
     passportNumber: String
@@ -106,7 +106,7 @@ export const userTypeDefs = `#graphql
   }
 
   type Query {
-    user(id: ID): UserPayload!
+    getUser: UserPayload!
   }
 
   type Mutation {

@@ -5,22 +5,14 @@ import { typeDefs } from "./typeDefs/index.js";
 import { resolvers } from "./resolvers/index.js";
 
 export const createApolloGraphQLServer = async () => {
-  const gqlServer = new ApolloServer({
+  const server = new ApolloServer({
     typeDefs,
     resolvers,
-    cors: {
-      origin: "*", // or specify your frontend domain for better security
-      credentials: true,
-    },
   });
 
-  await gqlServer.start();
+  await server.start();
 
-  return expressMiddleware(gqlServer, {
-    context: async ({ req }) => {
-      return {
-        req,
-      };
-    },
+  return expressMiddleware(server, {
+    context: ({ req }) => ({ req }),
   });
 };

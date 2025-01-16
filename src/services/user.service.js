@@ -66,14 +66,9 @@ export class UserService {
     }
   }
 
-  async getUser(id) {
-    // return await User.find({}).select("-password");
-    const user = await User.findOne({ _id: id });
+  async getUser({ _id }) {
+    const user = await User.findOne(_id);
     if (user) return { success: true, user };
     return { success: false, error: true, error_message: "User not found" };
   }
-
-  // async getUserById(id) {
-  //   return await User.findById(id).select("-password");
-  // }
 }
