@@ -1,4 +1,9 @@
 export const cartTypeDefs = `#graphql
+
+    type Thumbnail {
+        id:String!
+        url:String!
+    }
     # Cart Item Type
     type CartItem {
         productId: ID!
@@ -6,7 +11,7 @@ export const cartTypeDefs = `#graphql
         quantity: Int!
         price: Float!
         totalPrice: Float!
-        thumbnail: String
+        thumbnail: Thumbnail
         options: JSON # JSON scalar type to handle flexible key-value options
     }
 

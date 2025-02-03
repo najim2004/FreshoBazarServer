@@ -22,10 +22,10 @@ export const favoriteTypeDefs = `#graphql
     }
 
     type Query {
-        getFavoritesByUserId(userId: ID!): FavoritePayload
+        getFavorites: FavoritePayload
     }
 
     type Mutation {
-        toggleFavorite(userId: ID!, productId: ID!): FavoritePayload
+        toggleFavorite(productId: ID!): FavoritePayload
     }
 `;

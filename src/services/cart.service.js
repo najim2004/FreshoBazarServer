@@ -10,15 +10,15 @@ export class CartService {
 
       return !cart
         ? {
-            success: false,
-            message: "Cart not found!",
-            cart: null,
-          }
+          success: false,
+          message: "Cart not found!",
+          cart: null,
+        }
         : {
-            success: true,
-            message: "Cart retrieved successfully.",
-            cart: cart,
-          };
+          success: true,
+          message: "Cart retrieved successfully.",
+          cart: cart,
+        };
     } catch (error) {
       console.error("Error retrieving cart:", error);
       return {

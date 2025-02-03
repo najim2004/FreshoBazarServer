@@ -1,6 +1,25 @@
 import { Favorite } from "../models/favorite.model.js";
 
 export class FavoriteService {
+  async toggleFavorite(user, productId) {
+    const userId = user?._id;
+    try {
+      const isExist = await Favorite.findOne({
+        userId,
+        products: { $elemMatch: { productId } },
+      });
+      if (isExist) return await this.deleteFavorite(userId, productId);
+      else return await this.createFavorite(userId, productId);
+    } catch (error) {
+      console.log(error);
+      return {
+        success: false,
+        error: true,
+        error_message: error.message || "failed to toggle favorite",
+      };
+    }
+  }
+
   async createFavorite(userId, productId) {
     // Implement your favorite logic here
     try {
@@ -14,7 +33,6 @@ export class FavoriteService {
           { $push: { products: { productId, addedAt: Date.now() } } },
           { new: true }
         )) || (await Favorite.create(newFavorite));
-
       return dbResponse
         ? {
             success: true,
@@ -36,7 +54,8 @@ export class FavoriteService {
     }
   }
 
-  async getFavoritesByUserId(userId) {
+  async getFavoritesByUserId(user) {
+    const userId = user?._id;
     // Implement your favorite logic here
     try {
       const dbResponse = await Favorite.findOne({ userId });
@@ -86,24 +105,6 @@ export class FavoriteService {
         success: false,
         error: true,
         error_message: error.message || "failed to delete favorite",
-      };
-    }
-  }
-
-  async toggleFavorite(userId, productId) {
-    try {
-      const isExist = await Favorite.findOne({
-        userId,
-        products: { $elemMatch: { productId } },
-      });
-      if (isExist) return this.deleteFavorite(userId, productId);
-      else return this.createFavorite(userId, productId);
-    } catch (error) {
-      console.log(error);
-      return {
-        success: false,
-        error: true,
-        error_message: error.message || "failed to toggle favorite",
       };
     }
   }

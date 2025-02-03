@@ -10,7 +10,7 @@ const CartItemSchema = new mongoose.Schema({
   quantity: { type: Number, required: true, min: 1 },
   price: { type: Number, required: true },
   totalPrice: { type: Number, required: true },
-  thumbnail: { type: String },
+  thumbnail: { id:String, url:String },
   options: {
     type: Map,
     of: mongoose.Schema.Types.Mixed,

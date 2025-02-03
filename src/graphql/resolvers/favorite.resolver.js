@@ -1,14 +1,19 @@
+import { authMiddleware } from "../../middlewares/auth.middleware.js";
 import { FavoriteService } from "../../services/favorite.service.js";
 
 const favoriteService = new FavoriteService();
 
 export const favoriteResolvers = {
   Query: {
-    getFavoritesByUserId: async (_, { userId }) =>
-      await favoriteService.getFavoritesByUserId(userId),
+    getFavorites: authMiddleware.protect(
+      async (_, __, { user }) =>
+        await favoriteService.getFavoritesByUserId(user)
+    ),
   },
   Mutation: {
-    toggleFavorite: async (_, { userId, productId }) =>
-      await favoriteService.toggleFavorite(userId, productId),
+    toggleFavorite: authMiddleware.protect(
+      async (_, { productId }, { user }) =>
+        await favoriteService.toggleFavorite(user, productId)
+    ),
   },
 };

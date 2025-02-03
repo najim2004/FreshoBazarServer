@@ -45,6 +45,7 @@ export const productTypeDefs = `#graphql
         ratingsCount: Int
         tags: [String]!
         location:Location!
+        isFavorite: Boolean
         createdAt: DateTime!
         updatedAt: DateTime!
     }
@@ -53,7 +54,7 @@ export const productTypeDefs = `#graphql
         success: Boolean!
         product: Product
         error: Boolean
-        errorMessage: String
+        error_message: String
     }
 
     type ProductDeletePayload {
@@ -62,11 +63,20 @@ export const productTypeDefs = `#graphql
         error_message: String
     }
 
+    type Pagination {
+        currentPage: Int!
+        totalPages: Int!
+        totalItems: Int!
+        hasNextPage: Boolean!
+        hasPrevPage: Boolean!
+    }
+
     type ProductsPayload {
         success: Boolean!
         products: [Product!]
         error: Boolean
         error_message: String
+        pagination: Pagination
     }
 
     # Input types
@@ -98,10 +108,42 @@ export const productTypeDefs = `#graphql
         location: LocationInput
     }
 
+    enum PriceForSort {
+        highest_price
+        lowest_price
+    }
+    enum DietaryOptions {
+        none_organic
+        organic
+    }
+    enum UnitSizeForSort {
+        bigger_first
+        smallest_first
+    }
+    enum DateForSort {
+        oldest
+        newest
+    }
+
+    
+
+    input GetProducts {
+        categoryId: String,
+        search: String,
+        subcategories: [String],
+        dietaryOptions: DietaryOptions,
+        unitSize: UnitSizeForSort,
+        date: DateForSort,
+        price: PriceForSort,
+        otherOptions: [String],
+        priceRange: [Int],
+        page: Int,
+    }
+
     # Queries types
     type Query{
         getProduct(id:ID!): ProductPayload
-        getProducts: ProductsPayload
+        getProducts(input:GetProducts): ProductsPayload
     }
 
     # Mutations types

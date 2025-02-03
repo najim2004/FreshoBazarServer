@@ -33,3 +33,30 @@ export const validateLogin = (input) => {
       return { success: false, error: true, error_message: error.message };
   }
 };
+
+export const validateProduct = (input) => {
+  try {
+    if (!isValidProduct(input))
+      throw new Error("Invalid or missing required product fields");
+    
+    if (input.stockSize < 0)
+      throw new Error("Stock size cannot be negative");
+      
+    if (input.price <= 0)
+      throw new Error("Price must be greater than zero");
+      
+    if (input.discountValue < 0 || input.discountValue > 100)
+      throw new Error("Discount value must be between 0 and 100");
+
+  } catch (error) {
+    return { success: false, error: true, error_message: error.message };
+  }
+};
+
+export const isValidProduct = (p) => {
+  return p && typeof p === "object" && 
+    ["title", "description", "categoryId", "categoryName", "subCategories", 
+      "unitType", "unitSize", "stockSize", "price", "currency", 
+      "isDiscountable", "discountValue", "tags", "isAvailable"]
+      .every(f => p[f]) && p.images?.length;
+};

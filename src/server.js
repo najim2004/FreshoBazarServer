@@ -17,7 +17,9 @@ const init = async () => {
     // Middleware for file uploads
 
     // Apply CORS middleware
-    app.use(cors());
+    app.use(cors({
+      origin: "*"
+    }));
 
     // Middleware for JSON and URL-encoded payloads
     const bodyLimit = "50mb"; // Adjust limit as needed

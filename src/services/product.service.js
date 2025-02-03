@@ -1,161 +1,237 @@
 import mongoose from "mongoose";
 import { Product } from "../models/product.model.js";
 import { ImageService } from "./image.service.js";
+import { validateProduct } from "../utils/validators.js";
+import { Favorite } from "../models/favorite.model.js";
 
 const imageService = new ImageService();
 
 export class ProductService {
   async createProduct(newProduct) {
-    // Input validation schema
-    const requiredFields = [
-      "title",
-      "description",
-      "categoryId",
-      "categoryName",
-      "subCategories",
-      "unitType",
-      "unitSize",
-      "stockSize",
-      "price",
-      "currency",
-      "isDiscountable",
-      "discountValue",
-      "tags",
-      "isAvailable",
-    ];
-
-    // Validate required fields
-    const missingFields = requiredFields.filter((field) => !newProduct[field]);
-    if (missingFields.length > 0) {
-      throw new Error(`Missing required fields: ${missingFields.join(", ")}`);
-    }
-
-    // Validate images
-    if (!newProduct.images || !Array.isArray(newProduct.images)) {
-      throw new Error("Images must be an array");
-    }
-
-    const uploadedImages = [];
-    const uploadedThumbnail = null;
+    const validationErrors = validateProduct(newProduct);
+    if (validationErrors) return validationErrors;
+    let images = [],
+      thumbnail;
 
     try {
-      // Upload product images
-      if (newProduct.images.length > 0) {
-        for (const image of newProduct.images) {
-          try {
-            const { url, public_id } = await imageService.uploadImage(image);
-            uploadedImages.push({ id: public_id, url });
-          } catch (uploadError) {
-            throw new Error("Failed to upload one or more images");
-          }
-        }
-      }
+      [images, thumbnail] = await Promise.all([
+        Promise.all(
+          newProduct.images.map((img) =>
+            imageService
+              .uploadImage(img)
+              .then(({ url, public_id }) => ({ id: public_id, url }))
+              .catch(() => null)
+          )
+        ).then((imgs) => imgs.filter(Boolean)),
+        newProduct.thumbnail
+          ? imageService
+              .uploadImage(newProduct.thumbnail)
+              .then(({ url, public_id }) => ({ id: public_id, url }))
+          : null,
+      ]);
 
-      // Handle thumbnail
-      let thumbnailToSave;
-      if (newProduct.thumbnail) {
-        try {
-          const { url, public_id } = await imageService.uploadImage(
-            newProduct.thumbnail
-          );
-          thumbnailToSave = { id: public_id, url };
-        } catch (thumbnailError) {
-          throw new Error("Failed to upload thumbnail");
-        }
-      } else {
-        // Use first image as thumbnail if no specific thumbnail provided
-        thumbnailToSave = uploadedImages[0];
-      }
+      if (!images.length) throw new Error("Image upload failed");
 
-      // Prepare product data for database
-      const productData = {
-        ...newProduct,
-        images: uploadedImages,
-        thumbnail: thumbnailToSave,
-      };
-
-      // Start a mongoose session for transaction
       const session = await mongoose.startSession();
-      session.startTransaction();
-
-      try {
-        // Create product within a transaction
-        const dbResponse = await Product.create([productData], { session });
-
-        // Commit transaction
-        await session.commitTransaction();
-        session.endSession();
-
-        return {
-          success: true,
-          message: "Product created successfully.",
-          productId: dbResponse[0]._id,
-        };
-      } catch (dbError) {
-        // Rollback transaction
-        await session.abortTransaction();
-        session.endSession();
-
-        // Delete all uploaded images in case of database save failure
-        await Promise.all(
+      const [product] = await session.withTransaction(() =>
+        Product.create(
           [
-            ...uploadedImages.map((img) => imageService.deleteImage(img.id)),
-            thumbnailToSave && imageService.deleteImage(thumbnailToSave.id),
-          ].filter(Boolean)
-        );
+            {
+              ...newProduct,
+              images,
+              thumbnail: thumbnail || images[0],
+            },
+          ],
+          { session }
+        )
+      );
 
-        throw new Error("Failed to save product to database");
-      }
+      return { success: true, productId: product._id };
     } catch (error) {
-      // Clean up any already uploaded images in case of earlier errors
-      if (uploadedImages.length > 0) {
+      if (images.length || thumbnail) {
         await Promise.all(
-          uploadedImages.map((img) => imageService.deleteImage(img.id))
+          [...images, thumbnail]
+            .filter(Boolean)
+            .map((img) => imageService.deleteImage(img.id))
         );
       }
-      if (uploadedThumbnail) {
-        await imageService.deleteImage(uploadedThumbnail.id);
-      }
-      console.log(error);
-      return {
-        success: false,
-        error: true,
-        errorMessage: error.message || "Failed to create product",
-      };
+      return { success: false, error: true, error_message: error.message };
     }
   }
-  async getAllProducts() {
+
+  async getAllProducts(input = {}, user = {}) {
     try {
-      const dbResponse = await Product.find();
-      if (!dbResponse || dbResponse.length === 0) {
-        return {
-          success: false,
-          error: true,
-          errorMessage: "No products found.",
-        };
-      }
-      return {
-        success: true,
-        message: "Products retrieved successfully.",
-        products: dbResponse,
-      };
+      // Build query once
+      const query = this.buildQuery(input);
+      const sort = this.applySorting(input);
+      const { page, limit, skip } = this.getPagination(input);
+
+      // Create index for frequently queried fields
+      await Product.collection.createIndex({ isDelete: 1, isAvailable: 1 });
+      await Product.collection.createIndex({ title: "text", tags: "text" });
+
+      // Use lean() for better performance and select only needed fields
+      // const projection = {
+      //   title: 1,
+      //   price: 1,
+      //   images: 1,
+      //   thumbnail: 1,
+      //   description: 1,
+      //   categoryId: 1,
+      //   subCategories: 1,
+      //   isOrganic: 1,
+      //   unitSize: 1,
+      // };
+
+      // Parallel execution for better performance
+      const [products, total, userFavorites] = await Promise.all([
+        Product.find(query).sort(sort).skip(skip).limit(limit).lean(),
+
+        Product.countDocuments(query),
+        user._id
+          ? Favorite.findOne({ userId: user._id }).select("products").lean()
+          : null,
+      ]);
+
+      // Use Map for O(1) lookup instead of includes
+      const favoriteSet = userFavorites
+        ? new Set(
+            userFavorites.products.map((product) =>
+              product?.productId.toString()
+            )
+          )
+        : new Set();
+      // Optimize product enhancement
+      const enhancedProducts = products.map((product) => ({
+        ...product,
+        isFavorite: favoriteSet.has(product._id.toString()),
+      }));
+
+      return this.formatResponse(enhancedProducts, total, page, limit);
     } catch (error) {
-      console.error(error);
-      return {
-        success: false,
-        error: true,
-        errorMessage: error.message || "Failed to retrieve products.",
+      console.error("Product search error:", error);
+      return this.errorResponse();
+    }
+  }
+
+  buildQuery(input) {
+    const query = { isDelete: false, isAvailable: true };
+    // console.log(input);
+
+    if (input.categoryId) query.categoryId = input.categoryId;
+    if (input.subcategories?.length) {
+      query.subCategories = {
+        $in: Array.isArray(input.subcategories)
+          ? input.subcategories
+          : input.subcategories.split(","),
       };
     }
+    if (input.search) {
+      const regex = new RegExp(this.escapeRegex(input.search), "i");
+      query.$or = [
+        { title: regex },
+        { tags: regex },
+        { description: regex },
+        { categoryName: regex },
+        { subCategories: { $in: [regex] } },
+      ];
+    }
+    if (input.dietaryOptions) {
+      query.isOrganic = input.dietaryOptions === "organic";
+    }
+    if (input.priceRange?.length === 2) {
+      const [min, max] = Array.isArray(input.priceRange)
+        ? input.priceRange
+        : input.priceRange.split(",");
+      query.price = { $gte: Number(min), $lte: Number(max) };
+    }
+
+    return query;
+  }
+  // Helper method to apply sorting
+  applySorting(input) {
+    const sort = {};
+    if (input.price) {
+      sort.price = input.price === "highest_price" ? -1 : 1;
+    }
+    if (input.unitSize) {
+      sort.unitSize = input.unitSize === "bigger_first" ? -1 : 1;
+    }
+    if (input.date) {
+      sort.createdAt = input.date === "newest" ? -1 : 1;
+    }
+    // console.log(input?.otherOptions);
+    if (input?.otherOptions?.includes("top-rated")) {
+      sort.ratingsCount = -1;
+    }
+    // if(input.otherOptions.includes("most-popular")) {
+    //   sort.sold = -1;
+    // }
+    if (input?.otherOptions?.includes("discount")) {
+      sort.discountValue = -1;
+    }
+    if (input?.otherOptions?.includes("in-stock")) {
+      sort.stockSize = -1;
+    }
+
+    // If no sort specified, default to newest first
+    if (!sort.date) {
+      sort.createdAt = -1;
+    }
+    return sort;
+  }
+
+  getPagination(input) {
+    const page = Math.max(1, parseInt(input.page) || 1);
+    const limit = Math.max(1, parseInt(input.limit) || 12);
+    const skip = (page - 1) * limit;
+    return { page, limit, skip };
+  }
+
+  // Helper method to escape special regex characters
+  escapeRegex(string) {
+    return string.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&");
+  }
+  formatResponse(products, total, page, limit) {
+    return products.length
+      ? {
+          success: true,
+          message: "Products retrieved successfully.",
+          products,
+          pagination: {
+            currentPage: page,
+            totalPages: Math.ceil(total / limit),
+            totalItems: total,
+            hasNextPage: page < Math.ceil(total / limit),
+            hasPrevPage: page > 1,
+          },
+        }
+      : {
+          success: false,
+          error: true,
+          error_message: "No products found.",
+          products: [],
+          pagination: { currentPage: page, totalPages: 0, totalItems: 0 },
+        };
+  }
+
+  // Error response
+  errorResponse() {
+    return {
+      success: false,
+      error: true,
+      error_message: "Failed to retrieve products.",
+      products: [],
+      pagination: { currentPage: 1, totalPages: 0, totalItems: 0 },
+    };
   }
 
   async getProductById(_id) {
-    console.log(_id);
     if (!_id) {
       return {
         success: false,
         error: true,
-        errorMessage: "Product ID is required.",
+        error_message: "Product ID is required.",
       };
     }
 
@@ -165,7 +241,7 @@ export class ProductService {
         return {
           success: false,
           error: true,
-          errorMessage: "Product not found.",
+          error_message: "Product not found.",
         };
       }
       return {
@@ -178,7 +254,7 @@ export class ProductService {
       return {
         success: false,
         error: true,
-        errorMessage: error.message || "Failed to retrieve product.",
+        error_message: error.message || "Failed to retrieve product.",
       };
     }
   }
@@ -190,7 +266,7 @@ export class ProductService {
         return {
           success: false,
           error: true,
-          errorMessage: "Failed to delete product.",
+          error_message: "Failed to delete product.",
         };
       }
       return { success: true, message: "Product deleted successfully." };
@@ -199,7 +275,7 @@ export class ProductService {
       return {
         success: false,
         error: true,
-        errorMessage: error.message || "Failed to delete product.",
+        error_message: error.message || "Failed to delete product.",
       };
     }
   }

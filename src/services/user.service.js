@@ -6,10 +6,6 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 export class UserService {
-  // constructor() {
-  //   this.authService = new AuthService();
-  // }
-
   async register(input) {
     const validationErrors = validateRegistration(input);
     if (validationErrors) return validationErrors;

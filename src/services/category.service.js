@@ -4,7 +4,7 @@ export class CategoryService {
   async getAllCategories() {
     try {
       // Fetch all categories from the database
-      const categories = await Category.find().lean(); // Using lean() for faster read-only operations
+      const categories = await Category.find().lean().sort({name:1}); // Using lean() for faster read-only operations
 
       // Handle the case when no categories are found
       if (!categories || categories.length === 0) {

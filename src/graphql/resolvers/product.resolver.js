@@ -1,10 +1,14 @@
+import { authMiddleware } from "../../middlewares/auth.middleware.js";
 import { ProductService } from "../../services/product.service.js";
 
 const productService = new ProductService();
 
 export const productResolvers = {
   Query: {
-    getProducts: async () => await productService.getAllProducts(),
+    getProducts: authMiddleware.optionalAuth(
+      async (_, { input }, {user}) =>
+        await productService.getAllProducts(input, user)
+    ),
     getProduct: async (_, { id }) => await productService.getProductById(id),
   },
 
