@@ -42,7 +42,7 @@ export const productTypeDefs = `#graphql
         isDiscountable: Boolean
         discountValue: Int
         averageRating: Float
-        ratingsCount: Int
+        totalReviews: Int
         tags: [String]!
         location:Location!
         isFavorite: Boolean
@@ -144,6 +144,7 @@ export const productTypeDefs = `#graphql
     type Query{
         getProduct(id:ID!): ProductPayload
         getProducts(input:GetProducts): ProductsPayload
+        getFeaturedProducts: ProductsPayload
     }
 
     # Mutations types

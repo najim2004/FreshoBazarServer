@@ -131,7 +131,7 @@ const init = async () => {
     </head>
     <body>
         <header>
-            <h1>Welcome to Krishok Bolchi GraphQL Server</h1>
+            <h1>Welcome to FreshoBazar GraphQL Server</h1>
         </header>
         <main>
             <h2>Discover Powerful Data</h2>

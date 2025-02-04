@@ -6,10 +6,11 @@ const productService = new ProductService();
 export const productResolvers = {
   Query: {
     getProducts: authMiddleware.optionalAuth(
-      async (_, { input }, {user}) =>
+      async (_, { input }, { user }) =>
         await productService.getAllProducts(input, user)
     ),
     getProduct: async (_, { id }) => await productService.getProductById(id),
+    getFeaturedProducts: async () => await productService.getFeaturedProducts(),
   },
 
   Mutation: {

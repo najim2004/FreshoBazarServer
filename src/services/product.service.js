@@ -226,6 +226,76 @@ export class ProductService {
     };
   }
 
+  calculateProductScore(product) {
+    const { rating, sales, reviews, views, stock, discount } = product;
+
+    // স্কোর ক্যালকুলেশন
+    const ratingScore = rating * 10; // রেটিং (1-5) কে 10 গুণ করুন
+    const salesScore = sales * 2; // প্রতিটি সেলের জন্য 2 পয়েন্ট
+    const reviewScore = reviews * 1; // প্রতিটি রিভিউর জন্য 1 পয়েন্ট
+    const viewScore = views * 0.1; // প্রতিটি ভিউর জন্য 0.1 পয়েন্ট
+    const stockScore = stock > 0 ? 10 : 0; // স্টক থাকলে 10 পয়েন্ট
+    const discountScore = discount ? 5 : 0; // ডিসকাউন্ট থাকলে 5 পয়েন্ট
+
+    // মোট স্কোর
+    const totalScore =
+      ratingScore +
+      salesScore +
+      reviewScore +
+      viewScore +
+      stockScore +
+      discountScore;
+
+    return totalScore;
+  }
+
+  async getFeaturedProducts() {
+    try {
+      // ইন্ডেক্স তৈরি করুন (যদি প্রয়োজন হয়)
+      await Product.collection.createIndex({ isDelete: 1, isAvailable: 1 });
+
+      // Aggregate Pipeline
+      const products = await Product.aggregate([
+        {
+          $match: {
+            isDelete: false,
+            isAvailable: true,
+          },
+        },
+        {
+          $addFields: {
+            score: {
+              $add: [
+                { $multiply: ["$averageRating", 10] }, // রেটিং স্কোর
+                { $multiply: ["$sales", 2] }, // সেলস স্কোর
+                { $multiply: ["$totalReviews", 1] }, // রিভিউ স্কোর
+                { $multiply: ["$views", 0.1] }, // ভিউ স্কোর
+                { $cond: [{ $gt: ["$stockSize", 0] }, 10, 0] }, // স্টক স্কোর
+                { $cond: ["$discountValue", 5, 0] }, // ডিসকাউন্ট স্কোর
+              ],
+            },
+          },
+        },
+        { $sort: { score: -1 } }, // স্কোর অনুযায়ী সর্ট
+        { $limit: 12 }, // শীর্ষ 12 প্রোডাক্ট
+      ]);
+
+      return {
+        success: true,
+        message: "Featured products retrieved successfully.",
+        products,
+      };
+    } catch (error) {
+      console.error("Featured products error:", error);
+      return {
+        success: false,
+        error: true,
+        error_message: "Failed to retrieve featured products.",
+        products: [],
+      };
+    }
+  }
+
   async getProductById(_id) {
     if (!_id) {
       return {
@@ -236,7 +306,11 @@ export class ProductService {
     }
 
     try {
-      const dbResponse = await Product.findById(_id);
+      const dbResponse = await Product.findByIdAndUpdate(
+        _id,
+        { $inc: { views: 1 } },
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+      );
       if (!dbResponse) {
         return {
           success: false,
