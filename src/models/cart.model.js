@@ -1,26 +1,18 @@
 import mongoose from "mongoose";
 
 const CartItemSchema = new mongoose.Schema({
-  productId: {
+  product_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Product",
     required: true,
   },
-  name: { type: String, required: true },
   quantity: { type: Number, required: true, min: 1 },
-  price: { type: Number, required: true },
-  totalPrice: { type: Number, required: true },
-  thumbnail: { id:String, url:String },
-  options: {
-    type: Map,
-    of: mongoose.Schema.Types.Mixed,
-    default: {},
-  },
+  thumbnail: { type: String, required: true },
 });
 
 const CartSchema = new mongoose.Schema(
   {
-    userId: {
+    user_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
@@ -29,11 +21,7 @@ const CartSchema = new mongoose.Schema(
       type: [CartItemSchema],
       default: [],
     },
-    totalQuantity: {
-      type: Number,
-      default: 0,
-    },
-    totalPrice: {
+    total_quantity: {
       type: Number,
       default: 0,
     },
@@ -48,8 +36,10 @@ const CartSchema = new mongoose.Schema(
 
 // Middleware to calculate total quantity and price before saving the cart
 CartSchema.pre("save", function (next) {
-  this.totalQuantity = this.items.reduce((acc, item) => acc + item.quantity, 0);
-  this.totalPrice = this.items.reduce((acc, item) => acc + item.totalPrice, 0);
+  this.total_quantity = this.items.reduce(
+    (acc, item) => acc + item.quantity,
+    0
+  );
   next();
 });
 

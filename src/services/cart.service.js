@@ -4,21 +4,21 @@ import { Product } from "../models/product.model.js";
 
 export class CartService {
   // Retrieve a user's cart
-  async getCart(userId) {
+  async getCart(user_id) {
     try {
-      const cart = await Cart.findOne({ userId });
+      const cart = await Cart.findOne({ user_id });
 
       return !cart
         ? {
-          success: false,
-          message: "Cart not found!",
-          cart: null,
-        }
+            success: false,
+            message: "Cart not found!",
+            cart: null,
+          }
         : {
-          success: true,
-          message: "Cart retrieved successfully.",
-          cart: cart,
-        };
+            success: true,
+            message: "Cart retrieved successfully.",
+            cart: cart,
+          };
     } catch (error) {
       console.error("Error retrieving cart:", error);
       return {
@@ -30,7 +30,7 @@ export class CartService {
   }
 
   // Add item to cart
-  async addItemToCart(userId, itemInput) {
+  async addItemToCart(user_id, itemInput) {
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -42,14 +42,14 @@ export class CartService {
         throw new Error("Product not found.");
       }
 
-      let cart = await Cart.findOne({ userId });
-      if (!cart) cart = new Cart({ userId });
+      let cart = await Cart.findOne({ user_id });
+      if (!cart) cart = new Cart({ user_id });
 
       // ডিসকাউন্ট হিসাব
       const discountAmount = (product.price * product.discountValue) / 100;
       const discountPrice = product.price - discountAmount;
       const itemTotalPrice = discountPrice * quantity;
-      
+
       const existingItemIndex = cart.items.findIndex(
         (item) => item.productId.toString() === productId
       );
@@ -61,7 +61,7 @@ export class CartService {
         cart.items.push({
           productId,
           name: product.title,
-          thumbnail:product.thumbnail,
+          thumbnail: product.thumbnail,
           quantity,
           price: discountPrice, // ডিসকাউন্টের পর মূল্য ব্যবহার করা হচ্ছে
           totalPrice: itemTotalPrice,
@@ -86,16 +86,16 @@ export class CartService {
   }
 
   // Update a cart item
-  async updateCartItem(userId, itemInput) {
+  async updateCartItem(user_id, itemInput) {
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
       const { productId, quantity } = itemInput;
 
-      const cart = await Cart.findOne({ userId });
+      const cart = await Cart.findOne({ user_id });
       if (!cart) {
-        throw new Error("Cart not found for user with ID: " + userId);
+        throw new Error("Cart not found for user with ID: " + user_id);
       }
 
       const item = cart.items.find(
@@ -152,15 +152,15 @@ export class CartService {
   }
 
   // Remove an item from the cart
-  async removeItemFromCart(userId, productId) {
+  async removeItemFromCart(user_id, productId) {
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
-      // Cart find with userId
-      const cart = await Cart.findOne({ userId });
+      // Cart find with user_id
+      const cart = await Cart.findOne({ user_id });
       if (!cart) {
-        throw new Error(`Cart not found for user with ID: ${userId}`);
+        throw new Error(`Cart not found for user with ID: ${user_id}`);
       }
 
       // Find the item in cart
@@ -200,15 +200,15 @@ export class CartService {
   }
 
   // Clear all items from the cart
-  async clearCart(userId) {
+  async clearCart(user_id) {
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
-      // Find the cart by userId
-      const cart = await Cart.findOne({ userId });
+      // Find the cart by user_id
+      const cart = await Cart.findOne({ user_id });
       if (!cart) {
-        throw new Error(`Cart not found for user with ID: ${userId}`);
+        throw new Error(`Cart not found for user with ID: ${user_id}`);
       }
 
       // Clear the cart items, total quantity and total price

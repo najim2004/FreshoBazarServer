@@ -1,27 +1,18 @@
 export const cartTypeDefs = `#graphql
-
-    type Thumbnail {
-        id:String!
-        url:String!
-    }
     # Cart Item Type
     type CartItem {
-        productId: ID!
+        product_id: ID!
         name: String!
         quantity: Int!
-        price: Float!
-        totalPrice: Float!
-        thumbnail: Thumbnail
-        options: JSON # JSON scalar type to handle flexible key-value options
+        thumbnail: String!
     }
 
     # Cart Type
     type Cart {
         _id: ID!
-        userId: ID!
+        user_id: ID!
         items: [CartItem!]!
-        totalQuantity: Int!
-        totalPrice: Float!
+        total_quantity: Int!
         status: String!
         createdAt: Date
         updatedAt: Date
@@ -29,9 +20,8 @@ export const cartTypeDefs = `#graphql
 
     # Input type for adding items to the cart
     input CartItemInput {
-        productId: ID!
+        product_id: ID!
         quantity: Int!
-        options: JSON
     }
 
     # Input type for updating item quantities in the cart
@@ -48,15 +38,15 @@ export const cartTypeDefs = `#graphql
 
     # Query for getting a user’s cart
      type Query {
-        getCart(userId: ID!): CartPayload
+        getCart: CartPayload
     }
 
     # Mutations for adding, updating, and removing items in the cart
      type Mutation {
-        addItemToCart(userId: ID!, item: CartItemInput!): CartPayload
-        updateCartItem(userId: ID!, item: UpdateCartItemInput!): CartPayload
-        removeItemFromCart(userId: ID!, productId: ID!): CartPayload
-        clearCart(userId: ID!): CartPayload
+        addItemToCart(item: CartItemInput!): CartPayload
+        updateCartItem(item: UpdateCartItemInput!): CartPayload
+        removeItemFromCart(productId: ID!): CartPayload
+        clearCart: CartPayload
     }
 
     # Scalar type for flexible JSON fields (if your GraphQL setup includes a JSON type)
