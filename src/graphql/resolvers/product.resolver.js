@@ -14,8 +14,8 @@ export const productResolvers = {
   },
 
   Mutation: {
-    createProduct: async (_, { input }) =>
-      await productService.createProduct(input),
+    createProduct: authMiddleware.restrictTo("admin")(async (_, { input }) =>
+      await productService.createProduct(input)),
     // updateProduct: async (_, { id, updatedProduct }) =>
     //   productService.updateProduct(id, updatedProduct),
     deleteProduct: async (_, { _id }) =>

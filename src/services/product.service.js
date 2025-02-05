@@ -48,6 +48,7 @@ export class ProductService {
 
       return { success: true, productId: product._id };
     } catch (error) {
+      console.log(error);
       if (images.length || thumbnail) {
         await Promise.all(
           [...images, thumbnail]
