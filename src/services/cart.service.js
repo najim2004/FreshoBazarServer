@@ -1,241 +1,216 @@
 import mongoose from "mongoose";
 import { Cart } from "../models/cart.model.js";
 import { Product } from "../models/product.model.js";
+import { ERROR_CODES } from "../utils/constants.js";
 
 export class CartService {
-  // Retrieve a user's cart
+  createResponse(success, message, cart = null, error = null) {
+    return { success, message, cart, error };
+  }
+  /**
+   * Executes a database transaction with proper error handling
+   */
+  async executeTransaction(operation, successMessage) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const cart = await operation(session);
+      await session.commitTransaction();
+      return this.createResponse(true, successMessage, cart);
+    } catch (error) {
+      await session.abortTransaction();
+      return this.createResponse(false, error.message, null, {
+        code: error.code || ERROR_CODES.DATABASE_ERROR,
+        details: error.details || {},
+      });
+    } finally {
+      session.endSession();
+    }
+  }
+
+  /**
+   * Enriches cart items with product details
+   */
+  async enrichCartItems(items) {
+    if (!items?.length) return [];
+
+    const productIds = items.map((item) => item.product_id);
+    const products = await Product.find({ _id: { $in: productIds } })
+      .select("_id title price discountValue thumbnail")
+      .lean();
+
+    const productMap = new Map(products.map((p) => [p._id.toString(), p]));
+
+    return items.map((item) => ({
+      ...item,
+      name: productMap.get(item.product_id.toString())?.title || "",
+      price: productMap.get(item.product_id.toString())?.price || 0,
+      discount_value:
+        productMap.get(item.product_id.toString())?.discountValue || 0,
+      thumbnail:
+        productMap.get(item.product_id.toString())?.thumbnail?.url || "",
+    }));
+  }
+
+  /**
+   * Calculates cart totals
+   */
+  calculateCartTotals(items) {
+    return items.reduce(
+      (acc, { price = 0, quantity }) => ({
+        total_price: acc.total_price + price * quantity,
+        total_quantity: acc.total_quantity + quantity,
+      }),
+      { total_price: 0, total_quantity: 0 }
+    );
+  }
+
+  /**
+   * Retrieves or creates a cart for a user
+   */
   async getCart(user_id) {
     try {
-      const cart = await Cart.findOne({ user_id });
+      const cart =
+        (await Cart.findOne({ user_id }).lean()) ||
+        (await Cart.create({ user_id }));
 
-      return !cart
-        ? {
-            success: false,
-            message: "Cart not found!",
-            cart: null,
-          }
-        : {
-            success: true,
-            message: "Cart retrieved successfully.",
-            cart: cart,
-          };
-    } catch (error) {
-      console.error("Error retrieving cart:", error);
-      return {
-        success: false,
-        message: "Failed to retrieve cart.",
-        cart: null,
-      };
-    }
-  }
-
-  // Add item to cart
-  async addItemToCart(user_id, itemInput) {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
-    try {
-      const { productId, quantity, options } = itemInput;
-      const product = await Product.findById(productId);
-
-      if (!product) {
-        throw new Error("Product not found.");
-      }
-
-      let cart = await Cart.findOne({ user_id });
-      if (!cart) cart = new Cart({ user_id });
-
-      // ডিসকাউন্ট হিসাব
-      const discountAmount = (product.price * product.discountValue) / 100;
-      const discountPrice = product.price - discountAmount;
-      const itemTotalPrice = discountPrice * quantity;
-
-      const existingItemIndex = cart.items.findIndex(
-        (item) => item.productId.toString() === productId
-      );
-
-      if (existingItemIndex >= 0) {
-        cart.items[existingItemIndex].quantity += quantity;
-        cart.items[existingItemIndex].totalPrice += itemTotalPrice;
-      } else {
-        cart.items.push({
-          productId,
-          name: product.title,
-          thumbnail: product.thumbnail,
-          quantity,
-          price: discountPrice, // ডিসকাউন্টের পর মূল্য ব্যবহার করা হচ্ছে
-          totalPrice: itemTotalPrice,
-          options,
+      if (!cart.items?.length) {
+        return this.createResponse(true, "Cart is empty", {
+          ...cart,
+          total_price: 0,
+          total_quantity: 0,
         });
       }
-      await cart.save({ session });
-      await session.commitTransaction();
-      session.endSession();
-
-      return { success: true, message: "Item added to cart.", cart };
-    } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
-      console.error("Error adding item to cart:", error);
-      return {
-        success: false,
-        message: "Failed to add item to cart.",
-        cart: null,
+      console.log("90");
+      const enrichedItems = await this.enrichCartItems(cart.items);
+      const totals = this.calculateCartTotals(enrichedItems);
+      const enrichedCart = {
+        ...cart,
+        items: enrichedItems,
+        ...totals,
       };
+
+      return this.createResponse(
+        true,
+        "Cart retrieved successfully",
+        enrichedCart
+      );
+    } catch (error) {
+      return this.createResponse(false, "Failed to retrieve cart", null, {
+        code: ERROR_CODES.DATABASE_ERROR,
+        details: { error: error.message },
+      });
     }
   }
 
-  // Update a cart item
-  async updateCartItem(user_id, itemInput) {
-    const session = await mongoose.startSession();
-    session.startTransaction();
+  /**
+   * Adds an item to the cart
+   */
+  async addItemToCart(user_id, { product_id, quantity }) {
+    if (!quantity || quantity <= 0) {
+      return this.createResponse(false, "Invalid quantity", null, {
+        code: ERROR_CODES.INVALID_QUANTITY,
+        details: { minimum: 1 },
+      });
+    }
 
-    try {
-      const { productId, quantity } = itemInput;
+    const product = await Product.findById(product_id);
+    if (!product) {
+      return this.createResponse(false, "Product not found", null, {
+        code: ERROR_CODES.PRODUCT_NOT_FOUND,
+        details: { product_id },
+      });
+    }
 
-      const cart = await Cart.findOne({ user_id });
-      if (!cart) {
-        throw new Error("Cart not found for user with ID: " + user_id);
-      }
-
-      const item = cart.items.find(
-        (item) => item.productId.toString() === productId
+    return this.executeTransaction(async (session) => {
+      const existingCart = await Cart.findOneAndUpdate(
+        { user_id: user_id, "items.product_id": product_id },
+        { $inc: { "items.$.quantity": quantity } },
+        { new: true }
       );
 
-      if (!item) {
-        throw new Error(
-          "Item with product ID " + productId + " not found in cart."
+      if (!existingCart) {
+        await Cart.findOneAndUpdate(
+          { user_id: user_id },
+          { $push: { items: { product_id, quantity } } },
+          { new: true, session }
         );
       }
 
-      const product = await Product.findById(productId);
-      if (!product) {
-        throw new Error("Product not found with ID: " + productId);
-      }
-
-      // Check if quantity is valid
-      if (quantity <= 0) {
-        throw new Error("Quantity must be greater than 0.");
-      }
-
-      // Calculate discount and update item price
-      const discountAmount = (product.price * product.discountValue) / 100;
-      const discountPrice = product.price - discountAmount;
-      item.price = discountPrice;
-      item.quantity = quantity;
-      item.totalPrice = discountPrice * quantity;
-
-      // If quantity is 0 or less, remove item from cart
-      if (quantity <= 0) {
-        cart.items = cart.items.filter(
-          (item) => item.productId.toString() !== productId
-        );
-      }
-
-      await cart.save({ session });
-      await session.commitTransaction();
-      session.endSession();
-
-      return { success: true, message: "Cart item updated.", cart };
-    } catch (error) {
-      await session.abortTransaction();
-      session.endSession();
-      console.error("Error updating cart item:", error);
-
-      // Return the specific error message to the user
-      return {
-        success: false,
-        message: error.message || "Failed to update cart item.",
-        cart: null,
-      };
-    }
+      return (await this.getCart(user_id)).cart;
+    }, "Item added to cart successfully");
   }
 
-  // Remove an item from the cart
+  /**
+   * Updates the quantity of an item in the cart
+   */
+  async updateCartItem(user_id, { productId, quantity }) {
+    if (quantity < 0) {
+      return this.createResponse(false, "Invalid quantity", null, {
+        code: ERROR_CODES.INVALID_QUANTITY,
+        details: { minimum: 0 },
+      });
+    }
+
+    return this.executeTransaction(async (session) => {
+      const update =
+        quantity === 0
+          ? { $pull: { items: { product_id: productId } } }
+          : { $set: { "items.$.quantity": quantity } };
+
+      const cart = await Cart.findOneAndUpdate(
+        { user_id: user_id, "items.product_id": productId },
+        update,
+        { new: true, session }
+      );
+
+      if (!cart) {
+        throw { code: ERROR_CODES.ITEM_NOT_FOUND, message: "Item not found" };
+      }
+
+      return (await this.getCart(user_id)).cart;
+    }, "Cart updated successfully");
+  }
+
+  /**
+   * Removes an item from the cart
+   */
   async removeItemFromCart(user_id, productId) {
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    return this.executeTransaction(async (session) => {
+      const cart = await Cart.findOneAndUpdate(
+        { user_id: user_id },
+        { $pull: { items: { product_id: productId } } },
+        { new: true, session }
+      );
 
-    try {
-      // Cart find with user_id
-      const cart = await Cart.findOne({ user_id });
       if (!cart) {
-        throw new Error(`Cart not found for user with ID: ${user_id}`);
+        throw { code: ERROR_CODES.ITEM_NOT_FOUND, message: "Item not found" };
       }
 
-      // Find the item in cart
-      const item = cart.items.find(
-        (item) => item.productId.toString() === productId
-      );
-      if (!item) {
-        throw new Error(`Item with product ID ${productId} not found in cart.`);
-      }
-
-      // Remove item from cart
-      cart.items = cart.items.filter(
-        (item) => item.productId.toString() !== productId
-      );
-
-      // Save the updated cart
-      await cart.save({ session });
-
-      // Commit the transaction
-      await session.commitTransaction();
-      session.endSession();
-
-      return { success: true, message: "Item removed from cart.", cart };
-    } catch (error) {
-      // If any error occurs, rollback the transaction
-      await session.abortTransaction();
-      session.endSession();
-
-      console.error("Error removing item from cart:", error);
-
-      return {
-        success: false,
-        message: error.message || "Failed to remove item from cart.",
-        cart: null,
-      };
-    }
+      return (await this.getCart(user_id)).cart;
+    }, "Item removed successfully");
   }
 
-  // Clear all items from the cart
+  /**
+   * Clears all items from the cart
+   */
   async clearCart(user_id) {
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    return this.executeTransaction(async (session) => {
+      const cart = await Cart.findOneAndUpdate(
+        { user_id: user_id, "items.0": { $exists: true } },
+        { $set: { items: [] } },
+        { new: true, session }
+      );
 
-    try {
-      // Find the cart by user_id
-      const cart = await Cart.findOne({ user_id });
       if (!cart) {
-        throw new Error(`Cart not found for user with ID: ${user_id}`);
+        throw {
+          code: ERROR_CODES.CART_EMPTY,
+          message: "Cart is already empty",
+        };
       }
 
-      // Clear the cart items, total quantity and total price
-      cart.items = [];
-      cart.totalQuantity = 0;
-      cart.totalPrice = 0;
-
-      // Save the updated cart with the session
-      await cart.save({ session });
-
-      // Commit the transaction
-      await session.commitTransaction();
-      session.endSession();
-
-      return { success: true, message: "Cart cleared successfully.", cart };
-    } catch (error) {
-      // If there's an error, rollback the transaction
-      await session.abortTransaction();
-      session.endSession();
-
-      console.error("Error clearing cart:", error);
-
-      return {
-        success: false,
-        message: error.message || "Failed to clear cart.",
-        cart: null,
-      };
-    }
+      return (await this.getCart(user_id)).cart;
+    }, "Cart cleared successfully");
   }
 }

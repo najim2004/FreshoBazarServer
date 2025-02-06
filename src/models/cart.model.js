@@ -6,8 +6,7 @@ const CartItemSchema = new mongoose.Schema({
     ref: "Product",
     required: true,
   },
-  quantity: { type: Number, required: true, min: 1 },
-  thumbnail: { type: String, required: true },
+  quantity: { type: Number, required: true, min: 1 }
 });
 
 const CartSchema = new mongoose.Schema(
