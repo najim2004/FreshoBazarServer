@@ -1,31 +1,36 @@
 export const favoriteTypeDefs = `#graphql
     scalar DateTime
+    enum Request{
+        add
+        delete
+    }
 
     type ProductInFavorite {
-        productId: ID!
+        product_id: ID!
         addedAt: DateTime
     }
 
     type Favorite {
         _id: ID!
-        userId: ID!
+        user_id: ID!
         products: [ProductInFavorite]
         createdAt: DateTime!
         updatedAt: DateTime!
     }
-
+    
     type FavoritePayload {
         success: Boolean!
-        favorites: Favorite
+        product_id: ID
+        request:Request
         error: Boolean
-        error_message: String
+        message: String
     }
 
     type Query {
-        getFavorites: FavoritePayload
+        getFavorites: Favorite
     }
 
     type Mutation {
-        toggleFavorite(productId: ID!): FavoritePayload
+        toggleFavorite(product_id: ID!): FavoritePayload
     }
 `;

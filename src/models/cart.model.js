@@ -20,10 +20,6 @@ const CartSchema = new mongoose.Schema(
       type: [CartItemSchema],
       default: [],
     },
-    total_quantity: {
-      type: Number,
-      default: 0,
-    },
     status: {
       type: String,
       enum: ["active", "pending", "completed"],
@@ -32,14 +28,5 @@ const CartSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
-// Middleware to calculate total quantity and price before saving the cart
-CartSchema.pre("save", function (next) {
-  this.total_quantity = this.items.reduce(
-    (acc, item) => acc + item.quantity,
-    0
-  );
-  next();
-});
-
+CartSchema.path("items").schema.set("_id", false);
 export const Cart = mongoose.model("Cart", CartSchema);

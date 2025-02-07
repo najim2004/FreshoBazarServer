@@ -7,13 +7,13 @@ export const favoriteResolvers = {
   Query: {
     getFavorites: authMiddleware.protect(
       async (_, __, { user }) =>
-        await favoriteService.getFavoritesByUserId(user)
+        await favoriteService.getUserFavorites(user?._id || "")
     ),
   },
   Mutation: {
     toggleFavorite: authMiddleware.protect(
-      async (_, { productId }, { user }) =>
-        await favoriteService.toggleFavorite(user, productId)
+      async (_, { product_id }, { user }) =>
+        await favoriteService.toggleFavorite(user?.id, product_id)
     ),
   },
 };

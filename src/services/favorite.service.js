@@ -1,110 +1,84 @@
 import { Favorite } from "../models/favorite.model.js";
-
 export class FavoriteService {
-  async toggleFavorite(user, productId) {
-    const userId = user?._id;
+  async toggleFavorite(user_id, product_id) {
     try {
       const isExist = await Favorite.findOne({
-        userId,
-        products: { $elemMatch: { productId } },
+        user_id,
+        products: { $elemMatch: { product_id } },
       });
-      if (isExist) return await this.deleteFavorite(userId, productId);
-      else return await this.createFavorite(userId, productId);
+      if (isExist) return await this.deleteFavorite(user_id, product_id);
+      else return await this.createFavorite(user_id, product_id);
     } catch (error) {
       console.log(error);
       return {
         success: false,
         error: true,
-        error_message: error.message || "failed to toggle favorite",
+        message: error.message || "failed to toggle favorite",
       };
     }
   }
 
-  async createFavorite(userId, productId) {
-    // Implement your favorite logic here
+  async createFavorite(user_id, product_id) {
     try {
-      const newFavorite = {
-        userId,
-        products: [{ productId, addedAt: Date.now() }],
-      };
-      const dbResponse =
-        (await Favorite.findOneAndUpdate(
-          { userId },
-          { $push: { products: { productId, addedAt: Date.now() } } },
-          { new: true }
-        )) || (await Favorite.create(newFavorite));
+      const dbResponse = await Favorite.findOneAndUpdate(
+        { user_id },
+        { $push: { products: { product_id, addedAt: Date.now() } } },
+        { new: true, upsert: true }
+      );
       return dbResponse
         ? {
             success: true,
-            favorites: dbResponse,
+            product_id,
+            request: "add",
             message: "success to create favorite",
           }
         : {
             success: false,
             error: true,
-            error_message: "failed to create favorite",
+            request: "add",
+            message: "failed to create favorite",
           };
     } catch (error) {
       console.log(error);
       return {
         success: false,
         error: true,
-        error_message: error.message || "failed to create favorite",
+        message: error.message || "failed to create favorite",
       };
     }
   }
 
-  async getFavoritesByUserId(user) {
-    const userId = user?._id;
-    // Implement your favorite logic here
-    try {
-      const dbResponse = await Favorite.findOne({ userId });
-      return dbResponse
-        ? {
-            success: true,
-            message: "success to get favorites",
-            favorites: dbResponse,
-          }
-        : {
-            success: false,
-            error: true,
-            error_message: "favorite not found",
-          };
-    } catch (error) {
-      console.log(error);
-      return {
-        success: false,
-        error: true,
-        error_message: error.message || "failed to get favorites",
-      };
-    }
+  async getUserFavorites(user_id) {
+    const dbResponse = await Favorite.findOne({ user_id });
+    return dbResponse;
   }
 
-  async deleteFavorite(userId, productId) {
-    // Implement your favorite logic here
+  async deleteFavorite(user_id, product_id) {
     try {
       const dbResponse = await Favorite.findOneAndUpdate(
-        { userId },
-        { $pull: { products: { productId } } },
+        { user_id },
+        { $pull: { products: { product_id } } },
         { new: true }
       );
       return dbResponse
         ? {
             success: true,
-            favorites: dbResponse,
+            product_id,
             message: "success to delete favorite",
+            request: "delete",
           }
         : {
             success: false,
             error: true,
-            error_message: "favorite not found or not deleted",
+            request: "delete",
+            message: "favorite not found or not deleted",
           };
     } catch (error) {
       console.log(error);
       return {
         success: false,
         error: true,
-        error_message: error.message || "failed to delete favorite",
+        message: error.message || "failed to delete favorite",
       };
     }
   }

@@ -2,17 +2,17 @@ import mongoose from "mongoose";
 
 const favoriteSchema = new mongoose.Schema(
   {
-    userId: {
+    user_id: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // Assuming there's a User collection
+      ref: "User",
       required: true,
       unique: true,
     },
     products: [
       {
-        productId: {
+        product_id: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: "Product", // Assuming there's a Product collection
+          ref: "Product",
           required: true,
           unique: true,
         },
